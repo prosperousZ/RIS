@@ -1,0 +1,1 @@
+Simulate equation 10 in this paper : Basar, E.; Di Renzo, M.; De Rosny, J.; Debbah, M.; Alouini, M.S.; Zhang, R. Wireless communications through reconfigurable intelligent surfaces. IEEE Access 2019, 7, 116753–116773.
