@@ -8,9 +8,15 @@
 
 #*****************************************************
 #action: RIS unit phase shift
-#state: RIS current phase shift config, the vector of phase shift for every unit.
+#state: RIS current phase shift config, the vector of phase shift for every unit.(state需要考虑信道，state must consider the channel）
 #Reward: based one action, received signal strength, signal strength increase, reward increase.
 #*****************************************************
+
+
+# 1. define channel inside the state
+# 2. find the paper for that optimization, then send the paper
+# 3. write the optimization solution code, then compare with the Q-learning.
+
 
 #In this assumeption, we will use QPSK for the channel
 #for this code, it does not consider how x was adjusted, we simply data symbol = 1
@@ -45,7 +51,8 @@ class RISEnvironment:
         received_signal = effective_channel + noise
         signal_power = np.abs(received_signal) ** 2
         snr = signal_power / self.noise_power
-        reward = 10 * np.log10(snr)
+        #based on dB, 这个地方需要修改
+        reward = snr
         return received_signal, reward
 
     def encode_state(self):
@@ -102,11 +109,11 @@ for episode in range(num_episodes):
     rewards.append(total_reward)
 
     if episode % 100 == 0:
-        print(f"Episode: {episode}, Total Reward: {total_reward}")
+        print(f"Slot: {slot}, Total Reward: {total_reward}")
 
 # Plotting the training progress
 plt.plot(rewards)
-plt.xlabel('Episode')
+plt.xlabel('slot')
 plt.ylabel('Total Reward')
 plt.title('Training Progress')
 plt.show()
