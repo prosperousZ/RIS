@@ -17,8 +17,6 @@
 # 2. find the paper for that optimization, then send the paper
 # 3. write the optimization solution code, then compare with the Q-learning.
 
-
-#In this assumeption, we will use QPSK for the channel
 #for this code, it does not consider how x was adjusted, we simply data symbol = 1
 #for this code, every RIS unit that has two state(0 or pi), and every unit can adjust seperately.
 
@@ -26,32 +24,62 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class RISEnvironment:
+    #all the parameter in this environment could be change or recaculated by more specific channel information
     def __init__(self, num_elements=10):
         self.num_elements = num_elements# RIS 单元数量
+        
+        #variance = 1,channel gain for both h and g set up = 1, can be changed any time
+        self.sigma_alpha = 1
+        self.sigma_beta = 1
+        
+        # generate Raylrigh distributed alpha and beta
+        self.alpha =np.random.rayleigh(self.sigma_alpha, num_elements)
+        self.beta = np.random.rayleigh(self.sigma_beta, num_elements)
+        
+        #generate theta and psi
+        self.theta = np.random.rand(num_elements) * 2 * np.pi
+        self.psi = np.random.rand(num_elements) * 2 * np.pi
+        
+        #initial Es = 1 No = 1, so fixed Es/N0
+        self.Es = 1
+        self.N0 = 1
+        
         # 初始化信道系数向量 h 和 g
-        self.h = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
-        self.g = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
+        self.h = self.alpha * np.exp(-1j * self.theta)
+        self.g = self.beta * np.exp(-1j * self.psi)
+
+        #data symbol
+        self.x = 1
+
+        #self.AWGN = np.random.normal(0, np.sqrt(self.N0), 1) + 1j * np.random.normal(0, np.sqrt(self.N0), 1)
+        #self.h = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
+        #self.g = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
         self.noise_power = 0.01
         self.state = np.zeros(num_elements, dtype=int) # 初始化RIS相位状态
 
     def step(self, action):
         # Convert action to phase state for each RIS element
-        # 更新RIS相位状态
+        # 更新RIS相位状态,目前state只跟action相关，还没有加入channel
+        # this line of code represent a integer 0 or 1 action array
         self.state = [int(x) for x in format(action, '0{}b'.format(self.num_elements))]
         received_signal, reward = self.calculate_received_signal_and_reward()
         return self.encode_state(), reward
 
-    #calculate the received signal and reward
+    #calculate the SNR and reward(reward is gamma SNR)
     def calculate_received_signal_and_reward(self):
         phase_shifts = np.pi * np.array(self.state)
-        
         Phi = np.exp(1j * phase_shifts)
-        effective_channel = np.sum(self.h * Phi * self.g)
+
+        #This line of code corresponding to equation 9
+        effective_channel = np.sum(self.h * Phi * self.g) * self.x
+        
+        #noise here, gaussian noise ~ N(0,0,1)
         noise = np.random.normal(scale=np.sqrt(self.noise_power))
+        #noise = self.AWGN
+        
         received_signal = effective_channel + noise
         signal_power = np.abs(received_signal) ** 2
         snr = signal_power / self.noise_power
-        #based on dB, 这个地方需要修改
         reward = snr
         return received_signal, reward
 
@@ -61,7 +89,12 @@ class RISEnvironment:
     def reset(self):
         self.state = np.zeros(self.num_elements, dtype=int)
         return self.encode_state()
+    #This method is to maximized by eliminating the channel phase, then compare with Q learning
+    def calculate_maximum_snr(self):
+        snr = 1
+        return snr
 
+        
 class QLearningAgent:
     def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1.0):
         self.q_table = np.zeros((state_space_size, action_space_size))
