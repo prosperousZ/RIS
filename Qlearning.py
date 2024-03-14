@@ -109,7 +109,7 @@ for episode in range(num_episodes):
     rewards.append(total_reward)
 
     if episode % 100 == 0:
-        print(f"Slot: {slot}, Total Reward: {total_reward}")
+        print(f"Episode: {episode}, Total Reward: {total_reward}")
 
 # Plotting the training progress
 plt.plot(rewards)
