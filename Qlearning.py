@@ -39,7 +39,7 @@ class RISEnvironment:
         #generate theta and psi
         self.theta = np.random.rand(num_elements) * 2 * np.pi
         self.psi = np.random.rand(num_elements) * 2 * np.pi
-        
+       
         #initial Es = 1 No = 1, so fixed Es/N0
         self.Es = 1
         self.N0 = 1
@@ -74,10 +74,10 @@ class RISEnvironment:
         effective_channel = np.sum(self.h * Phi * self.g) * self.x
         
         #noise here, gaussian noise ~ N(0,0,1)
-        noise = np.random.normal(scale=np.sqrt(self.noise_power))
+        self.noise = np.random.normal(scale=np.sqrt(self.noise_power))
         #noise = self.AWGN
         
-        received_signal = effective_channel + noise
+        received_signal = effective_channel + self.noise
         signal_power = np.abs(received_signal) ** 2
         snr = signal_power / self.noise_power
         reward = snr
@@ -91,10 +91,15 @@ class RISEnvironment:
         return self.encode_state()
     #This method is to maximized by eliminating the channel phase, then compare with Q learning
     def calculate_maximum_snr(self):
-        snr = 1
+        phase_shifts = self.theta + self.psi
+        Phi = np.exp(1j * phase_shifts)
+        #This line of code corresponding to equation 9
+        effective_channel = np.sum(self.h * Phi * self.g) * self.x
+        received_signal = effective_channel + self.noise
+        signal_power = np.abs(received_signal) ** 2
+        snr = signal_power / self.noise_power
         return snr
 
-        
 class QLearningAgent:
     def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1.0):
         self.q_table = np.zeros((state_space_size, action_space_size))
