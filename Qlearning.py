@@ -27,11 +27,11 @@ class RISEnvironment:
         #The number of RIS units
         self.num_elements = num_elements
         
-        #variance = 1,channel gain for both h and g set up = 1, can be changed any time
+        #variance = 1, can be changed any time (variance of channel gain ~N(0,1))
         self.sigma_alpha = 1
         self.sigma_beta = 1
         
-        # generate Raylrigh distributed alpha and beta
+        # generate Raylrigh distributed alpha and beta(channel gain)
         self.alpha =np.random.rayleigh(self.sigma_alpha, num_elements)
         self.beta = np.random.rayleigh(self.sigma_beta, num_elements)
 
@@ -79,6 +79,7 @@ class RISEnvironment:
         #noise = self.AWGN
         
         received_signal = effective_channel + self.noise
+        #next step is to calculate SNR
         signal_power = np.abs(received_signal) ** 2
         snr = signal_power / self.noise_power
         reward = snr
@@ -98,6 +99,7 @@ class RISEnvironment:
     #This method is to maximized by eliminating the channel phase, then compare with Q learning
     def calculate_maximum_snr(self):
         phase_shifts = self.theta + self.psi
+        #For phase shift who is over 2 pi, is considered same as (phase shift - 2pi)
         for i in range (len(phase_shifts)):
             if phase_shifts[i] > 2*np.pi:
                 phase_shifts[i] = phase_shifts[i] - 2*np.pi
@@ -172,7 +174,6 @@ for episode in range(num_episodes):
         print(f"Slot: {episode}, Total Reward: {total_reward}")
 
 # Plotting the training progress
-print(state)
 plt.plot(rewards)
 plt.plot(snr_compare)
 plt.xlabel('slot')
