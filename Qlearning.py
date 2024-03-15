@@ -1,4 +1,3 @@
-
 #First of all, this is single-input, single output scheme
 #h and g are fading channels between single-antenna source and the RIS
 #for the ith reflecting meta-surface antenna (i = 1,2,...,N) and N is the numebr of reflecting metasurface of the RIS
@@ -89,6 +88,7 @@ class RISEnvironment:
     def reset(self):
         self.state = np.zeros(self.num_elements, dtype=int)
         return self.encode_state()
+    
     #This method is to maximized by eliminating the channel phase, then compare with Q learning
     def calculate_maximum_snr(self):
         phase_shifts = self.theta + self.psi
@@ -132,9 +132,12 @@ agent = QLearningAgent(state_space_size, action_space_size)
 # Run training
 num_episodes = 2000
 rewards = []
+
+snr_compare = []
 for episode in range(num_episodes):
     state = env.reset()
     total_reward = 0
+    total_snr = 0
 
     for _ in range(100):  # Limit the number of steps per episode
         action = agent.choose_action(state)
@@ -142,16 +145,26 @@ for episode in range(num_episodes):
         agent.update_q_table(state, action, reward, next_state)
         state = next_state
         total_reward += reward
+        snr_result = env.calculate_maximum_snr()
+        total_snr += snr_result
 
     agent.decay_exploration_rate()
     rewards.append(total_reward)
+    snr_compare.append(total_snr)
 
     if episode % 100 == 0:
         print(f"Episode: {episode}, Total Reward: {total_reward}")
 
 # Plotting the training progress
+plt.figure("1")
 plt.plot(rewards)
 plt.xlabel('slot')
-plt.ylabel('Total Reward')
+plt.ylabel('Total snr')
+plt.title('Training Progress')
+plt.show()
+plt.figure("2")
+plt.plot(snr_compare)
+plt.xlabel('slot')
+plt.ylabel('Total snr')
 plt.title('Training Progress')
 plt.show()
