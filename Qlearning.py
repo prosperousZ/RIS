@@ -107,7 +107,6 @@ class RISEnvironment:
         snr = signal_power / self.noise_power
         return snr
 
-#Q-learning 好好过一遍，这里面应该有错误
 class QLearningAgent:
 
     def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1):
@@ -120,7 +119,6 @@ class QLearningAgent:
 
     def choose_action(self, state):
         if np.random.rand() < self.exploration_rate:
-            
             #np.random.randint(0, self.action_space_size)表示从范围[0, self.action_space_size)（左闭右开区间）中随机选择一个整数。
             #self.action_space_size 表示动作空间的大小或者动作的数量。
             return np.random.randint(0, self.action_space_size)
@@ -130,7 +128,8 @@ class QLearningAgent:
     def update_q_table(self, state, action, reward, next_state):
         next_max = np.max(self.q_table[next_state])
         self.q_table[state, action] += self.learning_rate * (reward + self.discount_rate * next_max - self.q_table[state, action])
-
+        #self.q_table[state, action] = (1-self.learning_rate) * self.q_table[state,action] + self.learning_rate*(reward + self.discount_rate*next_max)
+        
     def decay_exploration_rate(self):
         self.exploration_rate *= 0.995
         self.exploration_rate = max(self.exploration_rate, 0.01)
