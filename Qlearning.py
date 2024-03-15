@@ -11,12 +11,11 @@
 #Reward: based one action, received signal strength, signal strength increase, reward increase.
 #*****************************************************
 
-
 # 1. define channel inside the state
 # 2. find the paper for that optimization, then send the paper
 # 3. write the optimization solution code, then compare with the Q-learning.
 
-#for this code, it does not consider how x was adjusted, we simply data symbol = 1
+#for this code, it does not consider how x was adjusted, we simply data symbol x = 1
 #for this code, every RIS unit that has two state(0 or pi), and every unit can adjust seperately.
 
 import numpy as np
@@ -25,7 +24,8 @@ import matplotlib.pyplot as plt
 class RISEnvironment:
     #all the parameter in this environment could be change or recaculated by more specific channel information
     def __init__(self, num_elements=10):
-        self.num_elements = num_elements# RIS 单元数量
+        #The number of RIS units
+        self.num_elements = num_elements
         
         #variance = 1,channel gain for both h and g set up = 1, can be changed any time
         self.sigma_alpha = 1
@@ -34,16 +34,16 @@ class RISEnvironment:
         # generate Raylrigh distributed alpha and beta
         self.alpha =np.random.rayleigh(self.sigma_alpha, num_elements)
         self.beta = np.random.rayleigh(self.sigma_beta, num_elements)
-        
+
         #generate theta and psi
-        self.theta = np.random.rand(num_elements) * 2 * np.pi
+        self.theta = np.random.rand(num_elements) *2*np.pi
         self.psi = np.random.rand(num_elements) * 2 * np.pi
        
         #initial Es = 1 No = 1, so fixed Es/N0
         self.Es = 1
         self.N0 = 1
         
-        # 初始化信道系数向量 h 和 g
+        # initial h and g
         self.h = self.alpha * np.exp(-1j * self.theta)
         self.g = self.beta * np.exp(-1j * self.psi)
 
@@ -54,8 +54,13 @@ class RISEnvironment:
         #self.h = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
         #self.g = np.random.normal(0, 1, num_elements) + 1j * np.random.normal(0, 1, num_elements)
         self.noise_power = 0.01
-        self.state = np.zeros(num_elements, dtype=int) # 初始化RIS相位状态
 
+        #noise here, gaussian noise 
+        self.noise = np.random.normal(scale=np.sqrt(self.noise_power))
+        
+        #initial RIS state
+        self.state = np.zeros(num_elements, dtype=int)
+        
     def step(self, action):
         # Convert action to phase state for each RIS element
         # 更新RIS相位状态,目前state只跟action相关，还没有加入channel
@@ -71,9 +76,6 @@ class RISEnvironment:
 
         #This line of code corresponding to equation 9
         effective_channel = np.sum(self.h * Phi * self.g) * self.x
-        
-        #noise here, gaussian noise ~ N(0,0,1)
-        self.noise = np.random.normal(scale=np.sqrt(self.noise_power))
         #noise = self.AWGN
         
         received_signal = effective_channel + self.noise
@@ -92,16 +94,24 @@ class RISEnvironment:
     #This method is to maximized by eliminating the channel phase, then compare with Q learning
     def calculate_maximum_snr(self):
         phase_shifts = self.theta + self.psi
+        for i in range (len(phase_shifts)):
+            if phase_shifts[i] > 2*np.pi:
+                phase_shifts[i] = phase_shifts[i] - 2*np.pi
+       
         Phi = np.exp(1j * phase_shifts)
         #This line of code corresponding to equation 9
         effective_channel = np.sum(self.h * Phi * self.g) * self.x
+        
         received_signal = effective_channel + self.noise
         signal_power = np.abs(received_signal) ** 2
         snr = signal_power / self.noise_power
         return snr
 
+#Q-learning 好好过一遍，这里面应该有错误
 class QLearningAgent:
-    def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1.0):
+
+    def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1):
+        #learning rate, discount_rate, exploration_rate
         self.q_table = np.zeros((state_space_size, action_space_size))
         self.learning_rate = learning_rate
         self.discount_rate = discount_rate
@@ -110,6 +120,9 @@ class QLearningAgent:
 
     def choose_action(self, state):
         if np.random.rand() < self.exploration_rate:
+            
+            #np.random.randint(0, self.action_space_size)表示从范围[0, self.action_space_size)（左闭右开区间）中随机选择一个整数。
+            #self.action_space_size 表示动作空间的大小或者动作的数量。
             return np.random.randint(0, self.action_space_size)
         else:
             return np.argmax(self.q_table[state])
@@ -130,7 +143,7 @@ env = RISEnvironment(num_elements=num_elements)
 agent = QLearningAgent(state_space_size, action_space_size)
 
 # Run training
-num_episodes = 2000
+num_episodes = 1600
 rewards = []
 
 snr_compare = []
@@ -153,16 +166,11 @@ for episode in range(num_episodes):
     snr_compare.append(total_snr)
 
     if episode % 100 == 0:
-        print(f"Episode: {episode}, Total Reward: {total_reward}")
+        print(f"Slot: {episode}, Total Reward: {total_reward}")
 
 # Plotting the training progress
-plt.figure("1")
+
 plt.plot(rewards)
-plt.xlabel('slot')
-plt.ylabel('Total snr')
-plt.title('Training Progress')
-plt.show()
-plt.figure("2")
 plt.plot(snr_compare)
 plt.xlabel('slot')
 plt.ylabel('Total snr')
