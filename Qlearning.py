@@ -46,7 +46,7 @@ class RISEnvironment:
         # initial h and g
         self.h = self.alpha * np.exp(-1j * self.theta)
         self.g = self.beta * np.exp(-1j * self.psi)
-
+        
         #data symbol
         self.x = 1
 
@@ -84,6 +84,10 @@ class RISEnvironment:
         reward = snr
         return received_signal, reward
 
+
+    #map(str, self.state)将self.state列表中的每个元素转换为字符串。
+    #''.join()将这些字符串连接起来，形成一个表示二进制数的字符串。
+    #int(..., 2)将这个二进制字符串解释为一个十进制整数。
     def encode_state(self):
         return int(''.join(map(str, self.state)), 2)
 
@@ -168,7 +172,7 @@ for episode in range(num_episodes):
         print(f"Slot: {episode}, Total Reward: {total_reward}")
 
 # Plotting the training progress
-
+print(state)
 plt.plot(rewards)
 plt.plot(snr_compare)
 plt.xlabel('slot')
