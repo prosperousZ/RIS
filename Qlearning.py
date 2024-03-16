@@ -113,6 +113,18 @@ class RISEnvironment:
         snr = signal_power / self.noise_power
         return snr
 
+    #This method is to worst case, random choose phase shift.
+    def calculate_worst_snr(self):
+        phase_shifts = np.random.rand(num_elements) *2*np.pi
+        Phi = np.exp(1j * phase_shifts)
+        #This line of code corresponding to equation 9
+        effective_channel = np.sum(self.h * Phi * self.g) * self.x
+        
+        received_signal = effective_channel + self.noise
+        signal_power = np.abs(received_signal) ** 2
+        snr = signal_power / self.noise_power
+        return snr
+
 class QLearningAgent:
 
     def __init__(self, state_space_size, action_space_size, learning_rate=0.1, discount_rate=0.95, exploration_rate=1):
@@ -152,11 +164,12 @@ num_episodes = 1600
 rewards = []
 
 snr_compare = []
+snr_worst = []
 for episode in range(num_episodes):
     state = env.reset()
     total_reward = 0
     total_snr = 0
-
+    total_snr_worst = 0
     for _ in range(100):  # Limit the number of steps per episode
         action = agent.choose_action(state)
         next_state, reward = env.step(action)
@@ -165,10 +178,13 @@ for episode in range(num_episodes):
         total_reward += reward
         snr_result = env.calculate_maximum_snr()
         total_snr += snr_result
+        snr_worst_result = env.calculate_worst_snr()
+        total_snr_worst += snr_worst_result
 
     agent.decay_exploration_rate()
     rewards.append(total_reward)
     snr_compare.append(total_snr)
+    snr_worst.append(total_snr_worst)
 
     if episode % 100 == 0:
         print(f"Slot: {episode}, Total Reward: {total_reward}")
@@ -176,6 +192,7 @@ for episode in range(num_episodes):
 # Plotting the training progress
 plt.plot(rewards)
 plt.plot(snr_compare)
+plt.plot(snr_worst)
 plt.xlabel('slot')
 plt.ylabel('Total snr')
 plt.title('Training Progress')
